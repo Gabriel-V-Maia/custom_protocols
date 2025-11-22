@@ -96,7 +96,8 @@ class Packet:
 def main():
     # Chave fixa usada pelo cliente e pelo servidor
     KEY = AESGCM.generate_key(256)  # AES‑256
-
+    print(F"key gerada {KEY}")
+    
     packet = Packet.from_file(
         user="a",
         source="192.168.0.1",

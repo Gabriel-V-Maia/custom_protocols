@@ -1,42 +1,50 @@
-
-import socket
 import struct
-import json
+import socket
+import json 
+
 
 HOST = "127.0.0.1"
 PORT = 6000
 
-def recv_exact(conn, n):
-    buf = bytearray()
-    while len(buf) < n:
-        chunk = conn.recv(n - len(buf))
-        if not chunk:
-            raise ConnectionError("Conexão fechada antes de receber tudo")
-        buf.extend(chunk)
-    return bytes(buf)
+class PacketParser:
+
+    @staticmethod
+    def read_exact(sock, n: int):
+        buffer = b""
+
+        while (len(buffer) < n):
+            chunk = sock.recv(n - len(buffer))
+
+            if not chunk:
+                raise ConnectionError("conexão abortada")
+
+            buffer += chunk
+
+        return buffer
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
     s.listen()
     conn, addr = s.accept()
-
     with conn:
         print(f"Connected by {addr}")
 
-        header_len_bytes = recv_exact(conn, 4)
-        header_len = struct.unpack(">I", header_len_bytes)[0]
+        while True:
+            header_len_bytes = PacketParser.read_exact(conn, 4)
+            header_len = struct.unpack(">I", header_len_bytes)[0]
 
-        header_bytes = recv_exact(conn, header_len)
-        header = json.loads(header_bytes.decode())
+            header_bytes = PacketParser.read_exact(conn, header_len)
+            header = json.loads(header_bytes.decode())
+            print("Header:", header)
 
-        print("HEADER:", header)
+            nonce = PacketParser.read_exact(conn, 12)
+            print("Nonce:", nonce.hex())
 
-        payload_len_bytes = recv_exact(conn, 4)
-        payload_len = struct.unpack(">I", payload_len_bytes)[0]
+            payload_len_bytes = PacketParser.read_exact(conn, 4)
+            payload_len = struct.unpack(">I", payload_len_bytes)[0]
+            print("Payload length:", payload_len)
 
-        payload = recv_exact(conn, payload_len)
-
-        print("PAYLOAD LEN:", len(payload))
-        print("PAYLOAD", payload)
+            payload = PacketParser.read_exact(conn, payload_len)
+            print("Payload received:", len(payload), "bytes")
 
 
