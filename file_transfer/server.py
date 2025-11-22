@@ -1,10 +1,24 @@
 import struct
 import socket
 import json 
-
+import zlib 
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 HOST = "127.0.0.1"
 PORT = 6000
+
+def decrypt_uncompress(payload: bytes, nonce: bytes, header: dict) -> bytes:
+    AES_KEY = (
+        b"\x7a\x0c\x4e\xb1\x19\x83\x5d\xfa"
+        b"\x3c\x52\x8f\x91\xde\x24\x6b\x07"
+        b"\xa8\xbb\x41\x9f\x02\x66\xcd\x73"
+        b"\xf4\x8d\x20\xea\x5a\x1c\xb9\x0f"
+    )
+    aes = AESGCM(AES_KEY)
+    header_json = json.dumps(header).encode("utf-8")  # AAD
+    compressed = aes.decrypt(nonce, payload, header_json)
+    return zlib.decompress(compressed)
+
 
 class PacketParser:
 
@@ -47,6 +61,12 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
                 payload = PacketParser.read_exact(conn, payload_len)
                 print("Payload received:", len(payload), "bytes")
+                try: 
+                    print("-------------- Unencrypted --------------")
+                    payload_decrypted = decrypt_uncompress(payload, nonce, header)
+                    print(payload_decrypted)
+                except Exception as e:
+                    print(f"{e}")
 
         except ConnectionError:
             print("conexão fechada")

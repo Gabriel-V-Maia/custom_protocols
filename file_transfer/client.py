@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 #  Utilidades de criptografia
 # ---------------------------------------------------------
 
-def encrypt_blob(header: bytes, payload: bytes, key: bytes):
+def encrypt_blob(header: bytes, payload: bytes, key):
     """
     Criptografa (header + payload) usando AES-GCM.
     header entra como AAD (autenticado) sem ir para dentro do ciphertext.
@@ -94,16 +94,24 @@ class Packet:
 # ---------------------------------------------------------
 
 def main():
-    # Chave fixa usada pelo cliente e pelo servidor
-    KEY = AESGCM.generate_key(256)  # AES‑256
-    print(F"key gerada {KEY}")
-    
+
+
+    AES_KEY = (
+        b"\x7a\x0c\x4e\xb1\x19\x83\x5d\xfa"
+        b"\x3c\x52\x8f\x91\xde\x24\x6b\x07"
+        b"\xa8\xbb\x41\x9f\x02\x66\xcd\x73"
+        b"\xf4\x8d\x20\xea\x5a\x1c\xb9\x0f"
+    )
+
+
     packet = Packet.from_file(
         user="a",
         source="192.168.0.1",
         path="test.txt",
-        key=KEY
+        key=AES_KEY
     )
+
+
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect(("127.0.0.1", 6000))
